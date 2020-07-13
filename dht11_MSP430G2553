@@ -10,7 +10,7 @@ unsigned char tl = 0;
 void main(void)
 {
 	 WDTCTL = WDTPW | WDTHOLD;	
-	 BCSCTL2= CALBC1_1MHZ;
+	 BCSCTL1= CALBC1_1MHZ;
 	 DCOCTL = CALDCO_1MHZ;
 	 __delay_cycles(2000000); 
 	    P2DIR |= BIT4; 
