@@ -5,6 +5,8 @@ dht11_MSP430G2553 includes the code necessary for integrating MSP430 with DHT11 
 For the detailed explanation video:
 https://youtu.be/Hid_jB_Dy-A
 
-ESPCAM_Code zip file includes the code that is for using the ESP32 CAM module as IP camera.
+ESPCAM_Code zip file includes the code that is for using the ESP32 CAM module as IP camera. 
+For the detailed explanation video:
+https://youtu.be/ucnLSXwH3sY
 
 line_follower_robot_msp_430 file includes the C code for a IR sensor based line follower robot vehicle. 
