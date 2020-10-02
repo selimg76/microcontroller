@@ -10,3 +10,5 @@ For the detailed explanation video:
 https://youtu.be/ucnLSXwH3sY
 
 line_follower_robot_msp_430 file includes the C code for a IR sensor based line follower robot vehicle. 
+For the detailed explanation video:
+https://youtu.be/7dnJjekSAB0
