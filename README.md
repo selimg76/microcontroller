@@ -12,3 +12,12 @@ https://youtu.be/ucnLSXwH3sY
 line_follower_robot_msp_430 file includes the C code for a IR sensor based line follower robot vehicle. 
 For the detailed explanation video:
 https://youtu.be/7dnJjekSAB0
+
+msp430serialmonitor file creates a serial monitor for MSP430 that outputs the character array in the 'text' in an infinite loop.
+For the detailed explanation video:
+https://youtu.be/Fzf8q6fgxfQ
+
+MSP430_DHT11_Sensor file is an update/revision for the dht11_MSP430G2553 file, it reads the temperature and humidity values in a loop and outputs the values to serial monitor at 19200 baud.
+For the detailed explanation video(s):
+https://youtu.be/Fzf8q6fgxfQ
+https://youtu.be/Hid_jB_Dy-A
