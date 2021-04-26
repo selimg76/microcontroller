@@ -1,0 +1,40 @@
+#include <msp430.h> 
+
+#define SERIAL BIT0 //   P1.0
+#define SRCLK BIT4  //   P1.4
+#define RCLK BIT5   //   P1.5
+
+void SRCLK_Pulse (void);  //To create a clock pulse for Shift Reg
+void RCLK_Pulse (void);   //To create a clock pulse for Storage Reg
+
+void main(void)
+{
+    WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
+    P1DIR |= SERIAL + SRCLK + RCLK;
+    int i;
+    P1OUT = 0x00;
+    while (1){
+        P1OUT |= SERIAL;
+        SRCLK_Pulse();
+        P1OUT ^= SERIAL;
+        SRCLK_Pulse();
+        P1OUT |= SERIAL;
+        SRCLK_Pulse();
+        P1OUT ^= SERIAL;
+        for (i=0;i<8;i++){
+            RCLK_Pulse();
+            SRCLK_Pulse();
+            __delay_cycles(200000);
+        }
+    }
+}
+void SRCLK_Pulse (void)
+{
+  P1OUT |= SRCLK;
+  P1OUT ^= SRCLK;
+}
+void RCLK_Pulse (void)
+{
+  P1OUT |= RCLK;
+  P1OUT ^= RCLK;
+}
