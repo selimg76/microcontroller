@@ -1,0 +1,28 @@
+// Storage Register Clock
+const int RCLK = 10;
+// Shift Register Clock
+const int SRCLK = 11;
+// Serial Data Pin
+const int SER = 12;
+const int numbers[]={1,2,4,8,16,32,64,128};
+void setup ()
+{
+  // Setup pins as Outputs
+  pinMode(RCLK, OUTPUT);
+  pinMode(SRCLK, OUTPUT);
+  pinMode(SER, OUTPUT);
+  Serial.begin(115200);
+}
+ 
+void loop() {
+  
+  for (int i = 0; i < 8; i++) {
+ 
+        digitalWrite(RCLK, LOW);
+        shiftOut(SER, SRCLK, MSBFIRST, numbers[i]);
+        digitalWrite(RCLK, HIGH);
+        Serial.print("\r\n");  // \r better for putty
+        Serial.print(numbers[i], BIN);
+    delay(200);
+  }
+}
