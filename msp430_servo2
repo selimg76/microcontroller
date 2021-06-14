@@ -1,0 +1,26 @@
+#include <msp430.h> 
+//drselim MSP430 & SG90 Servo
+//2nd Example
+//Please don't forget to give credits while using the code
+//video link for the description of the code:
+//https://youtu.be/V3v5ItyMKVc
+int i;
+void main(void)
+{
+    WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
+    BCSCTL1= CALBC1_1MHZ;
+    DCOCTL = CALDCO_1MHZ;
+    //PWM period
+    P1DIR |= BIT6;
+    P1SEL |= BIT6;  //selection for timer setting
+    while(1) {
+    TACCR0 = 20000;  //PWM period
+    for (i=350; i<=2350; i++) {
+        TACCR1 = i;
+        TACCTL1 = OUTMOD_7;  //CCR1 selection reset-set
+        TACTL = TASSEL_2|MC_1;   //SMCLK submain clock,upmode
+        __delay_cycles(1000);
+    }
+    __delay_cycles(1000000);
+    }
+}
