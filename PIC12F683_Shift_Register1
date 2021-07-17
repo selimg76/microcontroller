@@ -1,0 +1,57 @@
+/*
+ * File:   newmain_sr1.c
+ * Author: drselim
+ *
+ * Created on 17 July 2021, 23:17
+ */
+
+
+#include <xc.h>
+#pragma config FOSC = INTOSCIO  // Oscillator Selection bits (INTOSCIO oscillator: I/O function on RA4/OSC2/CLKOUT pin, I/O function on RA5/OSC1/CLKIN)
+#pragma config WDTE = OFF       // Watchdog Timer Enable bit (WDT disabled)
+#pragma config PWRTE = OFF      // Power-up Timer Enable bit (PWRT disabled)
+#pragma config MCLRE = OFF      // MCLR Pin Function Select bit (MCLR pin function is digital input, MCLR internally tied to VDD)
+#pragma config CP = OFF         // Code Protection bit (Program memory code protection is disabled)
+#pragma config CPD = OFF        // Data Code Protection bit (Data memory code protection is disabled)
+#pragma config BOREN = OFF      // Brown Out Detect (BOR disabled)
+#pragma config IESO = ON        // Internal External Switchover bit (Internal External Switchover mode is enabled)
+#pragma config FCMEN = ON       // Fail-Safe Clock Monitor Enabled bit (Fail-Safe Clock Monitor is enabled)
+#define _XTAL_FREQ 4000000  
+void SRCLK_Pulse (void);  //To create a clock pulse for Shift Reg
+void RCLK_Pulse (void);   //To create a clock pulse for Storage Reg
+void main(void) {
+    //P1DIR |= SERIAL + SRCLK + RCLK;
+    TRISIO2 = 0; //setting pins as output
+    TRISIO4 = 0;
+    TRISIO5 = 0;
+	int i;
+	//P1OUT = 0x00;
+    GP2 = 0; 
+    GP4 = 0;
+    GP5 = 0;
+	while (1){
+	    //P1OUT |= SERIAL;
+        GP2 = 1;
+	    SRCLK_Pulse();
+	    //P1OUT ^= SERIAL;
+        GP2 = 0;
+	    for (i=0; i<8; i++){
+	        RCLK_Pulse();
+	        SRCLK_Pulse();
+	        //__delay_cycles(100000);
+            __delay_ms(100);
+        }
+}
+}
+void SRCLK_Pulse(void){
+  //P1OUT |= SRCLK;
+  //P1OUT ^= SRCLK;
+    GP4 = 1;
+    GP4 = 0;
+}
+void RCLK_Pulse(void){
+  //P1OUT |= RCLK;
+  //P1OUT ^= RCLK;
+    GP5 = 1;
+    GP5 = 0;
+}
