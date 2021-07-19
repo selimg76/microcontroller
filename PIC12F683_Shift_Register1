@@ -4,7 +4,8 @@
  *
  * Created on 17 July 2021, 23:17
  */
-
+// please check the video for detailed explanation of the code:
+// https://youtu.be/Td7Xgz6vEPY
 
 #include <xc.h>
 #pragma config FOSC = INTOSCIO  // Oscillator Selection bits (INTOSCIO oscillator: I/O function on RA4/OSC2/CLKOUT pin, I/O function on RA5/OSC1/CLKIN)
