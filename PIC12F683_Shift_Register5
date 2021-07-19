@@ -1,0 +1,69 @@
+/*
+ * File:   newmain_sr1.c
+ * Author: drselim
+ *
+ * Created on 17 July 2021, 23:17
+ */
+
+// please check the video for detailed explanation of the code:
+//https://youtu.be/Td7Xgz6vEPY
+#include <xc.h>
+#pragma config FOSC = INTOSCIO  // Oscillator Selection bits (INTOSCIO oscillator: I/O function on RA4/OSC2/CLKOUT pin, I/O function on RA5/OSC1/CLKIN)
+#pragma config WDTE = OFF       // Watchdog Timer Enable bit (WDT disabled)
+#pragma config PWRTE = OFF      // Power-up Timer Enable bit (PWRT disabled)
+#pragma config MCLRE = OFF      // MCLR Pin Function Select bit (MCLR pin function is digital input, MCLR internally tied to VDD)
+#pragma config CP = OFF         // Code Protection bit (Program memory code protection is disabled)
+#pragma config CPD = OFF        // Data Code Protection bit (Data memory code protection is disabled)
+#pragma config BOREN = OFF      // Brown Out Detect (BOR disabled)
+#pragma config IESO = ON        // Internal External Switchover bit (Internal External Switchover mode is enabled)
+#pragma config FCMEN = ON       // Fail-Safe Clock Monitor Enabled bit (Fail-Safe Clock Monitor is enabled)
+#define _XTAL_FREQ 4000000  
+void SRCLK_Pulse (void);  //To create a clock pulse for Shift Reg
+void RCLK_Pulse (void);   //To create a clock pulse for Storage Reg
+void Send_Bit (unsigned int value);     //For sending 1 or zero
+void main(void) {
+    //P1DIR |= SERIAL + SRCLK + RCLK;
+    TRISIO2 = 0; //setting pins as output
+    TRISIO4 = 0;
+    TRISIO5 = 0;
+	int i;
+    unsigned int datatosend;
+    unsigned int x;
+	//P1OUT = 0x00;
+    GP2 = 0; 
+    GP4 = 0;
+    GP5 = 0;
+	   for (datatosend=1;datatosend<256;datatosend++){
+            for (i=0;i<8;i++){
+                        x = (datatosend & (1 << i));
+                        Send_Bit(x);
+                        SRCLK_Pulse();
+                        //RCLK_Pulse();
+                        __delay_ms(50);
+                    }
+            RCLK_Pulse();
+        }
+        while(1);
+//}
+}
+void SRCLK_Pulse(void){
+  //P1OUT |= SRCLK;
+  //P1OUT ^= SRCLK;
+    GP4 = 1;
+    GP4 = 0;
+}
+void RCLK_Pulse(void){
+  //P1OUT |= RCLK;
+  //P1OUT ^= RCLK;
+    GP5 = 1;
+    GP5 = 0;
+}
+void Send_Bit (unsigned int value){
+    if (value != 0){
+        //P1OUT |= SERIAL;}
+        GP2 = 1;}
+    else {
+        //P1OUT &= ~SERIAL;
+        GP2 = 0;
+    }
+}
