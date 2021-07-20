@@ -30,12 +30,6 @@ int a;
 int b;
 int c;
 int d;
-//double dgt[4];
-/*double dgt1;
-double dgt2;
-double dgt3;
-double dgt4;*/
-//int remainder1;
 void main(void){
     TRISIO2 = 0; //setting pins as output
     TRISIO4 = 0;
