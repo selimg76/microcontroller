@@ -1,0 +1,73 @@
+/*
+ * File:   newmain_sr1.c
+ * Author: drselim
+ * Displays a four digit number on a 4* 7 segment display (HS5641-B). PIC12F683 and two cascade connected shift registers
+ * Created on 17 July 2021, 23:17
+ */
+
+#include <xc.h>
+#include <math.h>
+#pragma config FOSC = INTOSCIO  // Oscillator Selection bits (INTOSCIO oscillator: I/O function on RA4/OSC2/CLKOUT pin, I/O function on RA5/OSC1/CLKIN)
+#pragma config WDTE = OFF       // Watchdog Timer Enable bit (WDT disabled)
+#pragma config PWRTE = OFF      // Power-up Timer Enable bit (PWRT disabled)
+#pragma config MCLRE = OFF      // MCLR Pin Function Select bit (MCLR pin function is digital input, MCLR internally tied to VDD)
+#pragma config CP = OFF         // Code Protection bit (Program memory code protection is disabled)
+#pragma config CPD = OFF        // Data Code Protection bit (Data memory code protection is disabled)
+#pragma config BOREN = OFF      // Brown Out Detect (BOR disabled)
+#pragma config IESO = ON        // Internal External Switchover bit (Internal External Switchover mode is enabled)
+#pragma config FCMEN = ON       // Fail-Safe Clock Monitor Enabled bit (Fail-Safe Clock Monitor is enabled)
+#define _XTAL_FREQ 4000000  
+void SRCLK_Pulse (void);  //To create a clock pulse for Shift Reg
+void RCLK_Pulse (void);   //To create a clock pulse for Storage Reg
+//int send_4digit (int a);
+void Send_Bit (int value);     //For sending 1 or zero
+//int numbers[] = {0b11111100, 0b01100000, 0b11011010, 0b11110010, 0b01100110, 0b10110110, 0b10111110, 0b11100000, 0b11111110, 0b11110110};
+int numbers_ca[] = {0b000000000011, 0b000010011111, 0b000000100101, 0b000000001101, 0b000010011001, 0b000001001001, 0b000001000001, 0b000000011111, 0b000000000001, 0b000000001001};
+int digit[] = {0b100000000000, 0b010000000000, 0b001000000000, 0b000100000000};
+int datatosend[4];
+int arr[4];
+int numbertosend;
+
+void main(void){
+    TRISIO2 = 0; //setting pins as output
+    TRISIO4 = 0;
+    TRISIO5 = 0;
+	int i;
+    int j;
+    int x;
+    GP2 = 0; 
+    GP4 = 0;
+    GP5 = 0;
+    while(1){
+    numbertosend = 2156;
+    arr[0] = numbertosend/1000;    
+    arr[1] = ((numbertosend/100)%10);  
+    arr[2] = ((numbertosend/10)%10);   
+    arr[3] = (numbertosend%10);    
+    for (j=0; j<4; j++){
+            datatosend[j] = numbers_ca[arr[j]] | digit[3-j];
+            for (i=11; i>=0; i--){
+	        x = (datatosend[j] & (1 << i));
+            Send_Bit(x);
+            SRCLK_Pulse();
+        }
+            RCLK_Pulse();
+    }
+    }
+  }
+
+void SRCLK_Pulse(void){
+    GP4 = 1;
+    GP4 = 0;
+}
+void RCLK_Pulse(void){
+    GP5 = 1;
+    GP5 = 0;
+}
+void Send_Bit (int value){
+    if (value != 0){
+        GP2 = 1;}
+    else {
+        GP2 = 0;
+    }
+}
