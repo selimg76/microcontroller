@@ -1,0 +1,74 @@
+/*
+ * File:   newmain_sr1.c
+ * Author: drselim
+ * Displays the numbers from 0 to 9. The seven segment used in the example is common cathode.
+ * Created on 17 July 2021, 23:17
+ */
+
+// please check the video for detailed explanation of the code:
+// 
+#include <xc.h>
+#pragma config FOSC = INTOSCIO  // Oscillator Selection bits (INTOSCIO oscillator: I/O function on RA4/OSC2/CLKOUT pin, I/O function on RA5/OSC1/CLKIN)
+#pragma config WDTE = OFF       // Watchdog Timer Enable bit (WDT disabled)
+#pragma config PWRTE = OFF      // Power-up Timer Enable bit (PWRT disabled)
+#pragma config MCLRE = OFF      // MCLR Pin Function Select bit (MCLR pin function is digital input, MCLR internally tied to VDD)
+#pragma config CP = OFF         // Code Protection bit (Program memory code protection is disabled)
+#pragma config CPD = OFF        // Data Code Protection bit (Data memory code protection is disabled)
+#pragma config BOREN = OFF      // Brown Out Detect (BOR disabled)
+#pragma config IESO = ON        // Internal External Switchover bit (Internal External Switchover mode is enabled)
+#pragma config FCMEN = ON       // Fail-Safe Clock Monitor Enabled bit (Fail-Safe Clock Monitor is enabled)
+#define _XTAL_FREQ 4000000  
+void SRCLK_Pulse (void);  //To create a clock pulse for Shift Reg
+void RCLK_Pulse (void);   //To create a clock pulse for Storage Reg
+void Send_Bit (unsigned int value);     //For sending 1 or zero
+int numbers[] = {0b11111100, 0b01100000, 0b11011010, 0b11110010, 0b01100110, 0b10110110, 0b10111110, 0b11100000, 0b11111110, 0b11110110};
+int datatosend;
+void main(void){
+    //P1DIR |= SERIAL + SRCLK + RCLK;
+    TRISIO2 = 0; //setting pins as output
+    TRISIO4 = 0;
+    TRISIO5 = 0;
+	int i;
+    int y;
+    unsigned int x;
+	//P1OUT = 0x00;
+    GP2 = 0; 
+    GP4 = 0;
+    GP5 = 0;   
+    for (y=0; y<10; y++){
+    datatosend = numbers[y];
+	    for (i=0; i<8; i++){
+	        x = (datatosend & (1 << i));
+            Send_Bit(x);
+            SRCLK_Pulse();
+            //RCLK_Pulse();
+            //__delay_ms(100);
+        }
+    RCLK_Pulse();
+    __delay_ms(1000);
+    }
+    //}
+//}
+}
+
+void SRCLK_Pulse(void){
+  //P1OUT |= SRCLK;
+  //P1OUT ^= SRCLK;
+    GP4 = 1;
+    GP4 = 0;
+}
+void RCLK_Pulse(void){
+  //P1OUT |= RCLK;
+  //P1OUT ^= RCLK;
+    GP5 = 1;
+    GP5 = 0;
+}
+void Send_Bit (unsigned int value){
+    if (value != 0){
+        //P1OUT |= SERIAL;}
+        GP2 = 1;}
+    else {
+        //P1OUT &= ~SERIAL;
+        GP2 = 0;
+    }
+}
