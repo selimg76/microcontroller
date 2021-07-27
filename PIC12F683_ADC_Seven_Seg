@@ -1,0 +1,95 @@
+/*
+ * File:   Adc_seven_seg.c
+ * Author: drselim
+ *
+ * Created on 27 July 2021, 10:18
+ */
+
+
+#include <xc.h>
+#pragma config FOSC = INTOSCIO  // Oscillator Selection bits (INTOSCIO oscillator: I/O function on RA4/OSC2/CLKOUT pin, I/O function on RA5/OSC1/CLKIN)
+#pragma config WDTE = OFF       // Watchdog Timer Enable bit (WDT disabled)
+#pragma config PWRTE = OFF      // Power-up Timer Enable bit (PWRT disabled)
+#pragma config MCLRE = OFF      // MCLR Pin Function Select bit (MCLR pin function is digital input, MCLR internally tied to VDD)
+#pragma config CP = OFF         // Code Protection bit (Program memory code protection is disabled)
+#pragma config CPD = OFF        // Data Code Protection bit (Data memory code protection is disabled)
+#pragma config BOREN = OFF      // Brown Out Detect (BOR disabled)
+#pragma config IESO = ON        // Internal External Switchover bit (Internal External Switchover mode is enabled)
+#pragma config FCMEN = ON       // Fail-Safe Clock Monitor Enabled bit (Fail-Safe Clock Monitor is enabled)
+#define _XTAL_FREQ 4000000
+void display_7_seg(int a);
+void SRCLK_Pulse (void);  //To create a clock pulse for Shift Reg
+void RCLK_Pulse (void);   //To create a clock pulse for Storage Reg
+void Send_Bit (int value); 
+int numbers_ca[] = {0b000000000011, 0b000010011111, 0b000000100101, 0b000000001101, 0b000010011001, 0b000001001001, 0b000001000001, 0b000000011111, 0b000000000001, 0b000000001001};
+int digit[] = {0b100000000000, 0b010000000000, 0b001000000000, 0b000100000000};
+int arr[4];
+int datatosend[4];
+void main(void) {
+    TRISIO2 = 0; //setting pins as output for shift register control
+    TRISIO4 = 0; //setting pins as output for shift register control
+    TRISIO5 = 0; //setting pins as output for shift register control
+    TRISIO1 = 1; //STEP1 GP1 for Analog Input Channel (potentiometer)
+    ANS1 = 1; //STEP1 Analog select
+    ADCS2 = 0 ; ADCS1 = 0; ADCS0 = 0; // STEP 2 Setting clock source Fosc/2 -> 2microsec
+    VCFG = 0; // STEP 2 Voltage reference = Vdd 5V
+    CHS1 = 0; CHS0 = 1; //STEP 2 INPUT Channel select A1
+    ADFM = 1; // STEP 2 Result format ADRESH LSB2 bits-> MSB 2 bits, ADRESL 8 bits LSB8bits
+    ADON = 1; // STEP 2 Enable ADC module
+    __delay_ms(10); //STEP 4 wait for acquisition time ,more than necessary (levels of usec)
+    int converted; //to store the ADC 
+    int msb; //msb two bits    
+    while(1){
+        GO_nDONE = 1; //STEP 5 start the conversion
+        while(GO_nDONE); //STEP 6 wait for ADC to complete do nothing while the ADC is busy
+        converted = 0x00; // Reading the ADC result reset the value
+        msb = 0x00; // reset msb two bits
+        msb = (ADRESH<<8); //left shift 8 bits
+        converted |= msb;
+        converted |= ADRESL;  //final value of the converted: 0-1023
+        display_7_seg(converted);
+        __delay_ms(10);
+    }
+}
+/*
+ * File:   Adc_seven_seg.c
+ * Author: drselim
+ * please give credit while using this code
+ * Created on 27 July 2021, 10:18
+ */
+void display_7_seg(int a){
+    int i;
+    int j;
+    int x;
+    GP2 = 0; 
+    GP4 = 0;
+    GP5 = 0;
+    arr[0] = a/1000;    
+    arr[1] = ((a/100)%10);  
+    arr[2] = ((a/10)%10);   
+    arr[3] = (a%10);  
+     for (j=0; j<4; j++){
+            datatosend[j] = numbers_ca[arr[j]] | digit[3-j];
+            for (i=11; i>=0; i--){
+	        x = (datatosend[j] & (1 << i));
+            Send_Bit(x);
+            SRCLK_Pulse();
+        }
+            RCLK_Pulse();
+    }
+}
+void SRCLK_Pulse(void){
+    GP4 = 1;
+    GP4 = 0;
+}
+void RCLK_Pulse(void){
+    GP5 = 1;
+    GP5 = 0;
+}
+void Send_Bit (int value){
+    if (value != 0){
+        GP2 = 1;}
+    else {
+        GP2 = 0;
+    }
+}
