@@ -1,7 +1,8 @@
 /*
  * File:   Adc_seven_seg.c
  * Author: drselim
- *
+ * check the video for detailed explanation:
+ * https://youtu.be/IrKNC-nATNQ
  * Created on 27 July 2021, 10:18
  */
 
@@ -51,10 +52,12 @@ void main(void) {
         __delay_ms(10);
     }
 }
-/*
+ /*
  * File:   Adc_seven_seg.c
  * Author: drselim
- * please give credit while using this code
+ * please don't forget to give credit while using this code
+ * check the video for detailed explanation:
+ * https://youtu.be/IrKNC-nATNQ
  * Created on 27 July 2021, 10:18
  */
 void display_7_seg(int a){
