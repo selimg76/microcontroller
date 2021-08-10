@@ -1,0 +1,153 @@
+#include <msp430.h> 
+//Reads the values in a burst (assuming the RTC is programmed already)
+//code by drselim Aug-2021
+//for detailed explanation:
+//https://youtu.be/78e3C4Mm6Kg
+#define SERIAL BIT0 //   P1.0
+#define SCLK BIT4  //   P1.4
+#define CE BIT5    // P1.5
+#define OB_LED BIT6 //P1.6 On board LED
+
+#define  ADR_WR_CREG    0x8E  //Control Register Write
+#define  ADR_RD_CREG    0x8F  //Control Register Read
+#define  ADR_WR_TCR     0x90  //Trickle Charge Register Write
+#define  ADR_RD_TCR     0x91  //Trickle Charge Register Read
+#define  ADR_WR_BURST   0xBE  //Burst Write
+#define  ADR_RD_BURST   0xBF  //Burst Read
+
+#define  ADR_WR_SEC    0x80  //Seconds Write
+#define  ADR_RD_SEC    0x81  //Seconds Read
+#define  ADR_WR_MIN    0x82  //Mins Write
+#define  ADR_RD_MIN    0x83  //...
+#define  ADR_WR_HR    0x84
+#define  ADR_RD_HR    0x85
+#define  ADR_WR_DATE    0x86
+#define  ADR_RD_DATE    0x87
+#define  ADR_WR_MON    0x88
+#define  ADR_RD_MON    0x89
+#define  ADR_WR_DAY    0x8A
+#define  ADR_RD_DAY    0x8B
+#define  ADR_WR_YR    0x8C
+#define  ADR_RD_YR    0x8D
+
+void SCLK_Pulse (void);  //To create a clock pulse high low
+void Send_Bit (unsigned int value);     //For sending 1 or zero
+void CE_On (void);  //Chip enable
+void CE_Off (void);  //Chip disable
+void Write_Byte (int content);
+void Read_Byte (int addr);
+void Read_Burst(void);
+void Write_Burst(void);
+int clock_data[8];
+int temp_byte[8];
+int temp;
+int x;
+unsigned int i;
+unsigned int j;
+//Reads the values in a burst (assuming the RTC is programmed already)
+//code by drselim Aug-2021
+//for detailed explanation:
+//https://youtu.be/78e3C4Mm6Kg
+void main(void)
+{
+    WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
+
+    while(1){
+    P1DIR |= SERIAL + SCLK + CE + OB_LED;
+    P1OUT = 0x00;
+    CE_On();
+    Read_Burst();
+    CE_Off();
+    if ((clock_data[0] >= 0x45 & clock_data[0] <=0x50) | (clock_data[0] >= 0x15 & clock_data[0] <=0x25) ){
+        P1OUT |= OB_LED;
+    }
+    else {
+        P1OUT &= ~OB_LED;
+    }
+    __delay_cycles(100000);
+    }
+
+}
+//Reads the values in a burst (assuming the RTC is programmed already)
+//code by drselim Aug-2021
+//for detailed explanation:
+//https://youtu.be/78e3C4Mm6Kg
+void Write_Byte(int content)
+{
+
+    for (i=0;i<8;i++){
+             x = (content & (1 << i));  //Write to Address
+             Send_Bit(x);
+             SCLK_Pulse();
+        }
+}
+void Read_Byte(int addr)
+{
+    temp = 0;
+    Write_Byte(addr);
+    P1DIR &= ~SERIAL;
+    for (j=0;j<8;j++){
+        temp >>= 1;
+            if ((P1IN & SERIAL) == 0x01){
+
+                temp |= 0b10000000;
+                   }
+                   else {
+
+                temp  &= 0b01111111;
+                   }
+
+            SCLK_Pulse();
+            }
+}
+void Read_Burst (void)
+{
+
+    CE_On();
+    Write_Byte(ADR_RD_BURST);
+    P1DIR &= ~SERIAL;  //set as input for receiving data
+    for (i=0;i<8;i++){
+        temp = 0;
+    for (j=0;j<8;j++){
+            temp >>= 1;
+                if ((P1IN & SERIAL) == 0x01){
+
+                    temp |= 0b10000000;
+                       }
+                       else {
+
+                    temp  &= 0b01111111;
+                       }
+
+                SCLK_Pulse();
+                }
+    clock_data[i] = temp;
+    }
+    CE_Off();
+}
+
+void SCLK_Pulse (void)
+{
+  P1OUT |= SCLK;
+  P1OUT ^= SCLK;
+}
+
+void Send_Bit (unsigned int value)
+{
+    if (value != 0){
+        P1OUT |= SERIAL;}
+    else {
+        P1OUT &= ~SERIAL;
+    }
+}
+
+void CE_On (void)
+{
+    P1OUT |= CE;
+}
+
+void CE_Off (void)
+{
+    P1OUT &= ~CE;
+}
+
