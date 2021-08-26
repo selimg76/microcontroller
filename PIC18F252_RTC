@@ -1,0 +1,350 @@
+/*
+ * File:   newmain_pic18f252_rtc_1302.c
+ * Author: drselim
+ * Sets the RTC to the written values if  rb4 is connected to vcc
+ * if rb4 isn't connected to Vcc, reads the values periodically(normal operation)
+ * Check https://youtu.be/kjbZ2EmNNlM  for details
+ * Created on 21 August 2021, 22:44
+ */
+// CONFIG1H
+#pragma config OSC = HS         // Oscillator Selection bits (HS oscillator)
+#pragma config OSCS = OFF       // Oscillator System Clock Switch Enable bit (Oscillator system clock switch option is disabled (main oscillator is source))
+
+// CONFIG2L
+#pragma config PWRT = OFF       // Power-up Timer Enable bit (PWRT disabled)
+#pragma config BOR = OFF        // Brown-out Reset Enable bit (Brown-out Reset disabled)
+#pragma config BORV = 20        // Brown-out Reset Voltage bits (VBOR set to 2.0V)
+
+// CONFIG2H
+#pragma config WDT = OFF        // Watchdog Timer Enable bit (WDT disabled (control is placed on the SWDTEN bit))
+#pragma config WDTPS = 128      // Watchdog Timer Postscale Select bits (1:128)
+
+// CONFIG3H
+#pragma config CCP2MUX = ON     // CCP2 Mux bit (CCP2 input/output is multiplexed with RC1)
+
+// CONFIG4L
+#pragma config STVR = ON        // Stack Full/Underflow Reset Enable bit (Stack Full/Underflow will cause RESET)
+#pragma config LVP = OFF         // Low Voltage ICSP Enable bit (Low Voltage ICSP dis)
+
+// CONFIG5L
+#pragma config CP0 = OFF        // Code Protection bit (Block 0 (000200-001FFFh) not code protected)
+#pragma config CP1 = OFF        // Code Protection bit (Block 1 (002000-003FFFh) not code protected)
+#pragma config CP2 = OFF        // Code Protection bit (Block 2 (004000-005FFFh) not code protected)
+#pragma config CP3 = OFF        // Code Protection bit (Block 3 (006000-007FFFh) not code protected)
+
+// CONFIG5H
+#pragma config CPB = OFF        // Boot Block Code Protection bit (Boot Block (000000-0001FFh) not code protected)
+#pragma config CPD = OFF        // Data EEPROM Code Protection bit (Data EEPROM not code protected)
+
+// CONFIG6L
+#pragma config WRT0 = OFF       // Write Protection bit (Block 0 (000200-001FFFh) not write protected)
+#pragma config WRT1 = OFF       // Write Protection bit (Block 1 (002000-003FFFh) not write protected)
+#pragma config WRT2 = OFF       // Write Protection bit (Block 2 (004000-005FFFh) not write protected)
+#pragma config WRT3 = OFF       // Write Protection bit (Block 3 (006000-007FFFh) not write protected)
+
+// CONFIG6H
+#pragma config WRTC = OFF       // Configuration Register Write Protection bit (Configuration registers (300000-3000FFh) not write protected)
+#pragma config WRTB = OFF       // Boot Block Write Protection bit (Boot Block (000000-0001FFh) not write protected)
+#pragma config WRTD = OFF       // Data EEPROM Write Protection bit (Data EEPROM not write protected)
+
+// CONFIG7L
+#pragma config EBTR0 = OFF      // Table Read Protection bit (Block 0 (000200-001FFFh) not protected from Table Reads executed in other blocks)
+#pragma config EBTR1 = OFF      // Table Read Protection bit (Block 1 (002000-003FFFh) not protected from Table Reads executed in other blocks)
+#pragma config EBTR2 = OFF      // Table Read Protection bit (Block 2 (004000-005FFFh) not protected from Table Reads executed in other blocks)
+#pragma config EBTR3 = OFF      // Table Read Protection bit (Block 3 (006000-007FFFh) not protected from Table Reads executed in other blocks)
+
+// CONFIG7H
+#pragma config EBTRB = OFF      // Boot Block Table Read Protection bit (Boot Block (000000-0001FFh) not protected from Table Reads executed in other blocks)
+
+// #pragma config statements should precede project file includes.
+// Use project enums instead of #define for ON and OFF.
+#define _XTAL_FREQ 16000000  //To tell the compiler 16 MHz crystal connected
+
+#include <xc.h>
+//#define SERIAL BIT0 //   P1.0  -- RB0 DAT
+//#define SCLK BIT4  //   P1.4  -- RB1 CLK
+//#define CE BIT5    // P1.5    -- RB2 RST,CE
+/*
+ * File:   newmain_pic18f252_rtc_1302.c
+ * Author: drselim
+ * Sets the RTC to the written values if  rb4 is connected to vcc
+ * if rb4 isn't connected to Vcc, reads the values periodically(normal operation)
+ * Created on 21 August 2021, 22:44
+ */                                                                                                                            
+#define  ADR_WR_CREG    0x8E  //Control Register Write
+#define  ADR_RD_CREG    0x8F  //Control Register Read
+#define  ADR_WR_TCR     0x90  //Trickle Charge Register Write
+#define  ADR_RD_TCR     0x91  //Trickle Charge Register Read
+#define  ADR_WR_BURST   0xBE  //Burst Write
+#define  ADR_RD_BURST   0xBF  //Burst Read
+
+#define  ADR_WR_SEC    0x80  //Seconds Write
+#define  ADR_RD_SEC    0x81  //Seconds Read
+#define  ADR_WR_MIN    0x82  //Mins Write
+#define  ADR_RD_MIN    0x83  //...
+#define  ADR_WR_HR    0x84
+#define  ADR_RD_HR    0x85
+#define  ADR_WR_DATE    0x86
+#define  ADR_RD_DATE    0x87
+#define  ADR_WR_MON    0x88
+#define  ADR_RD_MON    0x89
+#define  ADR_WR_DAY    0x8A
+#define  ADR_RD_DAY    0x8B
+#define  ADR_WR_YR    0x8C
+#define  ADR_RD_YR    0x8D
+
+void SCLK_Pulse (void);  //To create a clock pulse high low
+void Send_Bit (unsigned int value);     //For sending 1 or zero
+void CE_On (void);  //Chip enable
+void CE_Off (void);  //Chip disable
+void Write_Byte (int content);
+void Read_Byte (int addr);
+void Read_Burst(void);
+int clock_data[8];
+int temp_byte[8];
+int temp;
+int x;
+int i;
+int j;
+int numbers_ca[] = {0b00000011, 0b10011111, 0b00100101, 0b00001101, 0b10011001, 0b01001001, 0b01000001, 0b00011111, 0b00000001, 0b00001001};
+int char_day[] = {0b10000101,0b00010001,0b10001001};
+int digit[] = {0b00000001, 0b00000010, 0b00000100, 0b00001000};
+int arr[2];
+int arrmin[2];
+int arrhour[2];
+int arrdate[2];
+int arrmonth[2];
+//int arrday[2];
+int arryear[2];
+int second;
+int minute;
+int hour;
+int date;
+int month;
+int day;  //1-monday, 2-tuesday, ...
+int year; //20xx
+void main(void){
+    TRISA = 0x00; //Set PortA as output || These 5 lines from seven segment code.
+    TRISB = 0x00;
+    TRISBbits.TRISB4 = 1; //set as input for button
+    TRISC = 0x00; //Set PortC as output.
+    LATA = 0x00; //set as zero initially
+    LATC = 0x00; //set as zero initially
+    
+   /*
+ * File:   newmain_pic18f252_rtc_1302.c
+ * Author: drselim
+ * Sets the RTC to the written values if  rb4 is connected to vcc
+ * if rb4 isn't connected to Vcc, reads the values periodically(normal operation)
+ * Created on 21 August 2021, 22:44
+ */
+    if(PORTBbits.RB4 == 1){
+    CE_On();
+    Write_Byte(ADR_WR_CREG);  //goto control register
+    Write_Byte(0x00);         //disable write protect
+    CE_Off();
+    CE_On();
+    Write_Byte(ADR_WR_TCR);  //Go to Trickle charge register
+    Write_Byte(0b10101011);  //Enable Charger, 2 diodes, 8kOhm
+    CE_Off();
+    CE_On();
+    Write_Byte(ADR_WR_SEC);  //Go to seconds register
+    Write_Byte(0x00);  //set as..
+    CE_Off();
+    CE_On();
+    Write_Byte(ADR_WR_MIN);  //Go to minute register
+    Write_Byte(0x03);  //set as..
+    CE_Off();
+    CE_On();
+    Write_Byte(ADR_WR_HR);  //Go to hour register
+    Write_Byte(0x20);  //set as..
+    CE_Off();
+    CE_On();
+    Write_Byte(ADR_WR_DATE);  //Go to date register
+    Write_Byte(0x25);  //set as..
+    CE_Off();
+    CE_On();
+    Write_Byte(ADR_WR_MON);  //Go to month register
+    Write_Byte(0x08);  //set as..
+    CE_Off();
+    CE_On();
+    Write_Byte(ADR_WR_DAY);  //Go to day register
+    Write_Byte(0x03);  //set as..
+    CE_Off();
+    CE_On();
+    Write_Byte(ADR_WR_YR);  //Go to year register
+    Write_Byte(0x21);  //set as..21
+    CE_Off();
+    CE_On();
+    Write_Byte(ADR_WR_CREG);  //goto control register
+    Write_Byte(0x80);         //enable write protect
+    CE_Off();
+    }
+    else{
+    while(1){
+  
+    CE_On();
+    Read_Burst();
+    CE_Off();
+    //__delay_ms(100);
+    second = clock_data[0];
+    minute = clock_data[1];
+    hour = clock_data[2];
+    date = clock_data[3];
+    month = clock_data[4];
+    day = clock_data[5];
+    year = clock_data[6];
+    arr[0] = second/16;    
+    arr[1] = second%16;   
+    arrmin[0] = minute/16;
+    arrmin[1] = minute%16;
+    arrhour[0] = hour/16;
+    arrhour[1] = hour%16;
+    arrdate[0] = date/16;
+    arrdate[1] = date%16;
+    arrmonth[0] = month/16;
+    arrmonth[1] = month%16;
+    arryear[0] = year/16;
+    arryear[1] = year%16;
+    if(arr[1]<=2){
+       for (j=0;j<2;j++){
+        LATC = numbers_ca[arrmin[j]];
+        LATA = digit[j+2];
+        __delay_ms(5);
+    }
+    for (j=0;j<2;j++){
+        LATC = numbers_ca[arrhour[j]];
+        LATA = digit[j];
+        __delay_ms(5);
+    } 
+    }
+    else if(arr[1]<=5){
+     for (j=0;j<2;j++){
+        LATC = numbers_ca[arrmonth[j]];
+        LATA = digit[j+2];
+        __delay_ms(5);
+    }
+    for (j=0;j<2;j++){
+        LATC = numbers_ca[arrdate[j]];
+        LATA = digit[j];
+        __delay_ms(5);
+    } 
+    }
+    else if(arr[1]<=7){
+     for (j=0;j<2;j++){
+        LATC = numbers_ca[arryear[j]];
+        LATA = digit[j+2];
+        __delay_ms(5);
+    }
+   
+        LATC = numbers_ca[2];
+        LATA = digit[0];
+        __delay_ms(5);
+        LATC = numbers_ca[0];
+        LATA = digit[1];
+        __delay_ms(5);
+    }
+    else {
+        
+        for (j=0;j<3;j++){
+        LATC = char_day[j];
+        LATA = digit[j];
+        __delay_ms(5);
+    }
+    
+        LATC = numbers_ca[day];
+        LATA = digit[3];
+        __delay_ms(5);
+    
+    }
+}
+}
+}
+
+void Write_Byte(int content)
+{
+    TRISB &= 0xFE;   //when called by the read..
+    for (i=0;i<8;i++){
+             x = (content & (1 << i));  //Write to Address
+             Send_Bit(x);
+             SCLK_Pulse();
+        }
+}
+void Read_Byte(int addr)
+{
+    temp = 0;
+    Write_Byte(addr);
+    //P1DIR &= ~SERIAL;
+    TRISB |= 0x01; //setting RB0 as input
+    
+    for (j=0;j<8;j++){
+        temp >>= 1;
+            //if ((P1IN & SERIAL) == 0x01){
+              if ((PORTB & 0x01) == 0x01){
+                temp |= 0b10000000;
+                   }
+                   else {
+
+                temp  &= 0b01111111;
+                   }
+
+            SCLK_Pulse();
+            }
+}
+void Read_Burst (void)
+{
+    
+    Write_Byte(ADR_RD_BURST);
+    //P1DIR &= ~SERIAL;  //set as input for receiving data
+    TRISB |= 0x01; //setting RB0 as input
+    for (i=0;i<8;i++){
+        temp = 0;
+    for (j=0;j<8;j++){
+            temp >>= 1;
+                //if ((P1IN & SERIAL) == 0x01){
+                  if ((PORTB & 0x01) == 0x01){  
+                    temp |= 0b10000000;
+                       }
+                       else {
+
+                    temp  &= 0b01111111;
+                       }
+
+                SCLK_Pulse();
+                }
+    clock_data[i] = temp;
+    }
+    
+}
+
+void SCLK_Pulse (void)
+{
+  //P1OUT |= SCLK;
+  //P1OUT ^= SCLK;
+  LATB1 = 1;
+  LATB1 = 0;
+}
+
+void Send_Bit (unsigned int value)
+{
+    if (value != 0){
+        //P1OUT |= SERIAL;
+        LATB0 = 1;
+    }
+    else {
+        //P1OUT &= ~SERIAL;
+        LATB0 = 0;
+    }
+}
+
+void CE_On (void)
+{
+    //P1OUT |= CE;
+    LATB2 = 1;
+}
+
+void CE_Off (void)
+{
+    //P1OUT &= ~CE;
+    LATB2 = 0;
+}
