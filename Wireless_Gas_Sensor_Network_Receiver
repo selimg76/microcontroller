@@ -1,0 +1,29 @@
+/*
+* Gas sensor receiver code written by drselim https://www.youtube.com/c/drselim 
+* nrf section taken from  :            
+* Dejan Nedelkovski, www.HowToMechatronics.com
+* and modified by drselim
+*/
+#include <SPI.h>
+#include <nRF24L01.h>
+#include <RF24.h>
+RF24 radio(8, 7); // CE, CSN
+const byte address[6] = "00001";
+void setup() {
+  Serial.begin(9600);
+  radio.begin();
+  radio.openReadingPipe(0, address);
+  radio.setPALevel(RF24_PA_MIN);
+  radio.startListening();
+}
+void loop() {
+  if (radio.available()) {
+    int dataToReceive[8];
+    //char text[32] = "";
+    radio.read(&dataToReceive, sizeof(dataToReceive));
+    String bosluk = " ";
+    String String_to_Print = dataToReceive[0] + bosluk + dataToReceive[1] + bosluk + dataToReceive[2] + bosluk + dataToReceive[3] + bosluk + dataToReceive[4] + bosluk + dataToReceive[5] + bosluk + dataToReceive[6] + bosluk + dataToReceive[7];
+    
+    Serial.println(String_to_Print);
+  }
+}
