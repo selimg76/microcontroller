@@ -1,0 +1,62 @@
+/*
+* Gas sensor transmitter code written by drselim https://www.youtube.com/c/drselim 
+*  nrf section taken from  :            
+*  Dejan Nedelkovski, www.HowToMechatronics.com
+* and modified by drselim
+*
+ * Sensor Transmitter Circuit (from TOP):
+ * 
+ * ------SensorMQ8(A3)--SensorMQ5(A4)-------- SensorMQ6(A7) --------
+ *                                           Vcc
+ * ==================     =========          Vcc
+ * USB  ARDUINO NANO      nRF24l01           GND
+ * ==================     =========          GND
+ *  
+ * --SensorMQ2(A0)--SensorMQ3(A1)--SensorMQ135(A5)--SensorMQ4(A6)--- 
+ * 
+ */
+#include <SPI.h>
+#include <nRF24L01.h>
+#include <RF24.h>  //ghjgf
+RF24 radio(8, 7); // CE, CSN
+const byte address[6] = "00001";
+#define sensorMQ2_pin A0  // MQ2- Combustible Gas (High sensitivity to LPG, Propane and Hydrogen)
+#define sensorMQ3_pin A1  // MQ3- Semiconductor Sensor for Alcohol 
+#define sensor_blank_pin A2
+#define sensorMQ8_pin A3  // MQ8- High sensitivity to Hydrogen (H2)
+#define sensorMQ5_pin A4  // MQ5 - Izobutan , propan (Highsensitivity to LPG, natural gas , towngas)
+#define sensorMQ135_pin A5  // MMQ135 They are used in air quality control equipments for buildings/offices, are suitable for detecting
+// of NH3,NOx, alcohol, Benzene, smoke,CO2 ,etc.
+#define sensorMQ4_pin A6  // MQ4 - High sensitivity to Natural gas, Good sensitivity to Combustible gas in wide range 
+#define sensorMQ6_pin A7  // MQ6 - High sensitivity to Propane, Butane and LPG 
+void setup() {
+  delay(6000);
+  //Serial.begin(9600);
+  radio.begin();
+  radio.openWritingPipe(address);
+  radio.setPALevel(RF24_PA_MIN);
+  radio.stopListening();
+}
+void loop() {
+  int sensorValue1 = analogRead(sensorMQ2_pin);
+  int sensorValue2 = analogRead(sensorMQ3_pin);
+  int sensorValue3 = analogRead(sensor_blank_pin);
+  int sensorValue4 = analogRead(sensorMQ8_pin);
+  int sensorValue5 = analogRead(sensorMQ5_pin);
+  int sensorValue6 = analogRead(sensorMQ135_pin);
+  int sensorValue7 = analogRead(sensorMQ4_pin);
+  int sensorValue8 = analogRead(sensorMQ6_pin);
+  int dataToSend[8];
+  dataToSend[0] = sensorValue1;
+  dataToSend[1] = sensorValue2;
+  dataToSend[2] = sensorValue4;
+  dataToSend[3] = sensorValue5;
+  dataToSend[4] = sensorValue6;
+  dataToSend[5] = sensorValue7;
+  dataToSend[6] = sensorValue8;
+  dataToSend[7] = sensorValue3;
+  
+  radio.write(&dataToSend, sizeof(dataToSend));
+  
+  delay(10);
+}
