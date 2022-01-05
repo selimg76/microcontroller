@@ -59,6 +59,9 @@ void main(void)
         voltage = ((ADC10MEM*3.3)/1023); // mapping values
         int volt_int = floor(voltage);
         int rmndr = floor((voltage-volt_int)*1000); // ltoa only gets the integer values, this is a workaround to get the fractional part
+        //if you get an error with ltoa function below, try: 'ltoa(memval, mv_char,10)'
+        //check article:
+        //https://software-dl.ti.com/ccs/esd/documents/sdto_cgt_handling_changes_in_ltoa.html
         ltoa(memval, mv_char);
         ltoa(volt_int,vt_char);
         ltoa(rmndr,rm_char);
