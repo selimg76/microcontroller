@@ -54,9 +54,15 @@ void main(void)
         distance = diff/58;
         dst_int = floor(distance);
         tmp_flt = distance - dst_int;
+        //if you get an error with ltoa, try: 'ltoa(dst_int, dst_char,10)'
+        //check article:
+        //https://software-dl.ti.com/ccs/esd/documents/sdto_cgt_handling_changes_in_ltoa.html
         ltoa(dst_int, dst_char);
         if (tmp_flt < 0.01) {
         dst_flt = floor(tmp_flt * 1000);
+        //if you get an error with ltoa, try: 'ltoa(dst_flt,dst_flt_char,10)'
+        //check article:
+        //https://software-dl.ti.com/ccs/esd/documents/sdto_cgt_handling_changes_in_ltoa.html
         ltoa(dst_flt,dst_flt_char);
         ser_output(printdist); ser_output(dst_char); ser_output(dot); ser_output(zerro); ser_output(zerro); ser_output(dst_flt_char); ser_output(centimeter);
         }
