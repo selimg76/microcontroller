@@ -54,7 +54,10 @@ void main(void)
         while (ADC10CTL1 & BUSY);
         ADC10CTL0 |= ENC + ADC10SC;
         ADC10SA = (unsigned int)adc;
-        ltoa(adc[7],vt_chara0); ltoa(adc[6],vt_chara1); ltoa(adc[5],vt_chara2);
+        //if you get an error with ltoa, try: 'ltoa(adc[7],vt_chara0,10)'
+        //check article:
+        //https://software-dl.ti.com/ccs/esd/documents/sdto_cgt_handling_changes_in_ltoa.html
+        ltoa(adc[7],vt_chara0); ltoa(adc[6],vt_chara1); ltoa(adc[5],vt_chara2); //if you get an error with ltoa, try: 'ltoa(adc[7],vt_chara0,10)'
         ltoa(adc[4],vt_chara3); ltoa(adc[3],vt_chara4); ltoa(adc[2],vt_chara5);
         ltoa(adc[1],vt_chara6); ltoa(adc[0],vt_chara7);
         ser_output(volta0); ser_output(vt_chara0); ser_output(volta1); ser_output(vt_chara1);
