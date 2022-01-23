@@ -73,6 +73,9 @@ void main(void)
                     dataok = 1;
                 else
                     dataok = 0;
+                //if you get an error with ltoa, try: 'ltoa(th,th_char,10)'
+                //check article:
+                //https://software-dl.ti.com/ccs/esd/documents/sdto_cgt_handling_changes_in_ltoa.html
                 ltoa(th,th_char);
                 ltoa(tl,tl_char);
                 ltoa(hh,hh_char);
