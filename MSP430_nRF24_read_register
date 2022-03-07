@@ -1,10 +1,12 @@
-#include <msp430.h> 
-#include "nrf24.h"
-
 //intro to nrf24 with MSP430,reading the status register (automatic) and config register
 //code by drselim, use it, share it, like it
 //please give credits when using the code
 //https://www.youtube.com/c/drselim
+
+#include <msp430.h> 
+#include "nrf24.h"
+
+//intro to nrf24,reading the status register (automatic) and config register
 
 #define MOSI BIT0 //   P2.0
 #define MISO BIT1 //   P2.1
@@ -15,7 +17,6 @@ int i;
 int j;
 int k;
 int x;
-int temp;
 unsigned int status_reg;
 unsigned int read_reg;
 void SCLK_Pulse (void);  //To create a clock pulse high low
@@ -25,8 +26,10 @@ void CE_Off (void);  //Chip disable
 void CSN_On (void);     //CSN On
 void CSN_Off (void);    //CSN Off
 void Write_Byte (int content);
-void Write_Byte_MSB_First (int content);
-void Read_Byte_MSB_First (int content);
+void Instruction_Byte_MSB_First (int content);
+void Read_Byte_MSB_First (void);
+void read_status_register (void);
+void read_register (void);
 void main(void)
 {
 
@@ -39,18 +42,16 @@ void main(void)
     CE_On();
     CSN_On();
     CSN_Off();
-    Read_Byte_MSB_First(R_REGISTER | CONFIG);
+    Instruction_Byte_MSB_First(R_REGISTER | TX_ADDR);
+    Read_Byte_MSB_First();  //read register
     CSN_On();
+    while(1);
 }
 void SCLK_Pulse (void)
 {
   P2OUT |= SCLK;//set high with OR 1
   P2OUT ^= SCLK;//toggle with XOR 1
 }
-//intro to nrf24 with MSP430,reading the status register (automatic) and config register
-//code by drselim, use it, share it, like it
-//please give credits when using the code
-//https://www.youtube.com/c/drselim
 void Send_Bit (unsigned int value)
 {
     if (value != 0){
@@ -76,6 +77,10 @@ void CSN_Off (void)
 {
     P2OUT &= ~CSN;
 }
+//intro to nrf24 with MSP430,reading the status register (automatic) and config register
+//code by drselim, use it, share it, like it
+//please give credits when using the code
+//https://www.youtube.com/c/drselim
 void Write_Byte(int content)
 {
 
@@ -85,42 +90,52 @@ void Write_Byte(int content)
              SCLK_Pulse();
         }
 }
-//intro to nrf24 with MSP430,reading the status register (automatic) and config register
-//code by drselim, use it, share it, like it
-//please give credits when using the code
-//https://www.youtube.com/c/drselim
-void Write_Byte_MSB_First(int content)
+void Instruction_Byte_MSB_First(int content)
 {
-    temp = 0;
+
     for (k=7;k>=0;--k){
-             status_reg >>= 1;
+             //status_reg >>= 1;
              x = (content & (1 << k));  //Write to Address
              Send_Bit(x);
              SCLK_Pulse();
-             if ((P2IN & MISO) == 0x02){
-
-                             status_reg |= 0b10000000;
-                                }
-                                else {
-
-                             status_reg  &= 0b01111111;
-                                }
+             read_status_register();
                          }
 
 }
-void Read_Byte_MSB_First(int content)
+void Read_Byte_MSB_First(void)
 {
-    Write_Byte_MSB_First(content);
-    for (k=7;k>=0;--k){
-                 read_reg >>= 1;
+
+    read_register();
+    for (k=0;k<7;k++){
+                 //read_reg >>= 1;
                  SCLK_Pulse();
-                 if ((P2IN & MISO) == 0x02){
-
-                                 read_reg |= 0b10000000;
-                                    }
-                                    else {
-
-                                 read_reg  &= 0b01111111;
-                                    }
+                 read_register();
                              }
+}
+void read_status_register (void){
+    if ((P2IN & MISO) == 0x02){
+
+                                //status_reg |= 0b10000000;
+                                status_reg |= 0b00000001;
+                                   }
+                                   else {
+
+                                //status_reg  &= 0b01111111;
+                                status_reg  &= 0b11111110;
+                                   }
+    status_reg <<= 1;
+}
+void read_register (void){
+    read_reg <<= 1;
+    if ((P2IN & MISO) == 0x02){
+
+                                //read_reg |= 0b10000000;
+                                  read_reg |= 0b00000001;
+                                   }
+                                   else {
+
+                                //read_reg  &= 0b01111111;
+                                  read_reg  &= 0b11111110;
+                                   }
+
 }
