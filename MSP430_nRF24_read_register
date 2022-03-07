@@ -1,4 +1,4 @@
-//intro to nrf24 with MSP430,reading the status register (automatic) and config register
+//intro to nrf24 with MSP430,reading the status register (automatic) and desired register
 //code by drselim, use it, share it, like it
 //please give credits when using the code
 //https://www.youtube.com/c/drselim
