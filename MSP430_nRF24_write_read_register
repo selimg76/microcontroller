@@ -2,9 +2,6 @@
 #include "nrf24.h"
 
 //writing to & reading a desired register
-//code by drselim
-//please give credits when using the code
-//https://www.youtube.com/c/drselim
 
 #define MOSI BIT0 //   P2.0
 #define MISO BIT1 //   P2.1
@@ -15,8 +12,9 @@ int i;
 int j;
 int k;
 int x;
-unsigned int status_reg;
-unsigned int read_reg;
+//const char address[6]="00001";
+unsigned char status_reg;
+unsigned char read_reg[5];
 void SCLK_Pulse (void);  //To create a clock pulse high low
 void Send_Bit (unsigned int value);     //For sending 1 or zero
 void CE_On (void);  //Chip enable
@@ -25,10 +23,8 @@ void CSN_On (void);     //CSN On
 void CSN_Off (void);    //CSN Off
 void Write_Byte (int content);
 void Instruction_Byte_MSB_First (int content);
-void Read_Byte_MSB_First (void);
+void Read_Byte_MSB_First (int index);
 void Write_Byte_MSB_First(int content);
-void read_status_register (void);
-void read_register (void);
 void main(void)
 {
 
@@ -38,17 +34,16 @@ void main(void)
     P2DIR |= MOSI + SCLK + CE + CSN ;  //Output Pins
     P2DIR &= ~MISO;
 
-    CE_On();
+    //CE_On();
     CSN_On();
     CSN_Off();
-    Instruction_Byte_MSB_First(W_REGISTER | CONFIG);
-    Write_Byte_MSB_First(0b00001011);  // write config register
+    Instruction_Byte_MSB_First(R_REGISTER | RX_ADDR_P1);
+    Read_Byte_MSB_First(5); // read 5 bytes
     CSN_On();
-    CSN_Off();
-    Instruction_Byte_MSB_First(R_REGISTER | CONFIG);
-    Read_Byte_MSB_First();  //read register
-    CSN_On();
-    while(1);
+
+    while(1){
+
+    }
 }
 void SCLK_Pulse (void)
 {
@@ -80,10 +75,6 @@ void CSN_Off (void)
 {
     P2OUT &= ~CSN;
 }
-//writing to & reading a desired register
-//code by drselim
-//please give credits when using the code
-//https://www.youtube.com/c/drselim
 void Write_Byte(int content)
 {
 
@@ -97,29 +88,52 @@ void Instruction_Byte_MSB_First(int content)
 {
 
     for (k=7;k>=0;--k){
-             //status_reg >>= 1;
              x = (content & (1 << k));  //Write to Address
+             status_reg <<= 1;
              Send_Bit(x);
+
+             if ((P2IN & MISO) == 0x02){
+
+
+                                             status_reg |= 0b00000001;
+                                                }
+                                                else {
+
+
+                                             status_reg  &= 0b11111110;
+                                                }
+
              SCLK_Pulse();
-             read_status_register();
+
                          }
 
 }
-void Read_Byte_MSB_First(void)
+void Read_Byte_MSB_First(int index)
 {
+    for (i=0;i<=(index-1);i++){
+        for (k=0;k<8;k++){
+           read_reg[i] <<= 1;
 
-    read_register();
-    for (k=0;k<7;k++){
-                 //read_reg >>= 1;
-                 SCLK_Pulse();
-                 read_register();
-                             }
+
+                     if ((P2IN & MISO) == 0x02){
+
+                                                 //read_reg |= 0b10000000;
+                                                   read_reg[i] |= 0b00000001;
+                                                    }
+                                                    else {
+
+                                                 //read_reg  &= 0b01111111;
+                                                   read_reg[i]  &= 0b11111110;
+                                                    }
+                     SCLK_Pulse();
+    }
+}
 }
 void Write_Byte_MSB_First(int content)
 {
 
     for (k=7;k>=0;--k){
-             //status_reg >>= 1;
+
              x = (content & (1 << k));  //Write to Address
              Send_Bit(x);
              SCLK_Pulse();
@@ -127,30 +141,4 @@ void Write_Byte_MSB_First(int content)
                          }
 
 }
-void read_status_register (void){
-    if ((P2IN & MISO) == 0x02){
 
-                                //status_reg |= 0b10000000;
-                                status_reg |= 0b00000001;
-                                   }
-                                   else {
-
-                                //status_reg  &= 0b01111111;
-                                status_reg  &= 0b11111110;
-                                   }
-    status_reg <<= 1;
-}
-void read_register (void){
-    read_reg <<= 1;
-    if ((P2IN & MISO) == 0x02){
-
-                                //read_reg |= 0b10000000;
-                                  read_reg |= 0b00000001;
-                                   }
-                                   else {
-
-                                //read_reg  &= 0b01111111;
-                                  read_reg  &= 0b11111110;
-                                   }
-
-}
