@@ -12,7 +12,8 @@ int i;
 int j;
 int k;
 int x;
-//const char address[6]="00001";
+
+unsigned char address[6]="selim";
 unsigned char status_reg;
 unsigned char read_reg[5];
 void SCLK_Pulse (void);  //To create a clock pulse high low
@@ -24,7 +25,7 @@ void CSN_Off (void);    //CSN Off
 void Write_Byte (int content);
 void Instruction_Byte_MSB_First (int content);
 void Read_Byte_MSB_First (int index);
-void Write_Byte_MSB_First(int content);
+void Write_Byte_MSB_First(unsigned char content[], int index2);
 void main(void)
 {
 
@@ -37,7 +38,12 @@ void main(void)
     //CE_On();
     CSN_On();
     CSN_Off();
-    Instruction_Byte_MSB_First(R_REGISTER | RX_ADDR_P1);
+    Instruction_Byte_MSB_First(W_REGISTER | TX_ADDR);
+    Write_Byte_MSB_First(address,5);
+    CSN_On();
+
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | TX_ADDR);
     Read_Byte_MSB_First(5); // read 5 bytes
     CSN_On();
 
@@ -129,16 +135,18 @@ void Read_Byte_MSB_First(int index)
     }
 }
 }
-void Write_Byte_MSB_First(int content)
+void Write_Byte_MSB_First(unsigned char content[], int index2)
 {
-
+    for (i=0;i<=(index2-1);i++){
     for (k=7;k>=0;--k){
 
-             x = (content & (1 << k));  //Write to Address
+             x = (content[i] & (1 << k));  //Write to Address
              Send_Bit(x);
              SCLK_Pulse();
 
                          }
 
 }
+}
+
 
