@@ -1,0 +1,310 @@
+#include <msp430.h> 
+#include "nrf24.h"
+
+//reading all of the registers on the nrf_device
+
+#define MOSI BIT0 //   P2.0
+#define MISO BIT1 //   P2.1
+#define SCLK BIT4  //   P2.4
+#define CE BIT5    // P2.5
+#define CSN BIT3   //P2.3
+int i;
+int j;
+int k;
+int x;
+
+
+unsigned char address[6]="00001";
+//unsigned char payload[17]="selim123selim123";
+int payload[8] = {100,200,300,400,500,600,700,888};
+unsigned char status_reg;
+unsigned char read_reg[5];
+
+unsigned char read_reg_CONFIG[1];
+unsigned char read_reg_EN_AA[1];
+unsigned char read_reg_EN_RXADDR[1];
+unsigned char read_reg_SETUP_AW[1];
+unsigned char read_reg_SETUP_RETR[1];
+unsigned char read_reg_RF_CH[1];
+unsigned char read_reg_RF_SETUP[1];
+unsigned char read_reg_STATUS[1];
+unsigned char read_reg_OBSERVE_TX[1];
+unsigned char read_reg_CD[1];
+unsigned char read_reg_RX_ADDR_P0[5];  //5 BYTES
+unsigned char read_reg_RX_ADDR_P1[5];  //5 BYTES
+unsigned char read_reg_RX_ADDR_P2[1];
+unsigned char read_reg_RX_ADDR_P3[1];
+unsigned char read_reg_RX_ADDR_P4[1];
+unsigned char read_reg_RX_ADDR_P5[1];
+unsigned char read_reg_TX_ADDR[5];  //5 BYTES
+unsigned char read_reg_RX_PW_P0[1];
+unsigned char read_reg_RX_PW_P1[1];
+unsigned char read_reg_RX_PW_P2[1];
+unsigned char read_reg_RX_PW_P3[1];
+unsigned char read_reg_RX_PW_P4[1];
+unsigned char read_reg_RX_PW_P5[1];
+unsigned char read_reg_FIFO_STATUS[1];
+
+
+unsigned char rfregister[1]={0b00001001};  //PALEVEL low -----00-
+unsigned char cfgregister[1]={0b00001000};  //Only set RX mode, (POWER UP!  ------1- later)
+void SCLK_Pulse (void);  //To create a clock pulse high low
+void Send_Bit (unsigned int value);     //For sending 1 or zero
+void CE_On (void);  //Chip enable
+void CE_Off (void);  //Chip disable
+void CSN_On (void);     //CSN On
+void CSN_Off (void);    //CSN Off
+void Write_Byte (int content);
+void Instruction_Byte_MSB_First (int content);
+void Read_Byte_MSB_First(int index, unsigned char regname[]);
+void Write_Byte_MSB_First(unsigned char content[], int index2);
+void Write_Payload_MSB_First(int pyld[], int index3);
+void main(void)
+{
+    __delay_cycles(1500); //delay 1.5 ms for settling
+    WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
+    //P2DIR &= 0x00 ;
+    P2OUT &= 0x00;
+    P2DIR |= MOSI + SCLK + CE + CSN ;  //Output Pins
+    P2DIR &= ~MISO;
+
+    //CE_On();
+    CSN_On();
+    // READING & SAVING REGISTERS CONTENT
+    //CONFIG
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | CONFIG);
+    Read_Byte_MSB_First(1,read_reg_CONFIG); // read 1 bytes
+    CSN_On();
+    //EN_AA
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | EN_AA);
+    Read_Byte_MSB_First(1,read_reg_EN_AA); // read 1 bytes
+    CSN_On();
+    //EN_RXADDR
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | EN_RXADDR);
+    Read_Byte_MSB_First(1,read_reg_EN_RXADDR); // read 1 bytes
+    CSN_On();
+    //SETUP_AW
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | SETUP_AW);
+    Read_Byte_MSB_First(1,read_reg_SETUP_AW); // read 1 bytes
+    CSN_On();
+    //SETUP_RETR
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | SETUP_RETR);
+    Read_Byte_MSB_First(1,read_reg_SETUP_RETR); // read 1 bytes
+    CSN_On();
+    //RF_CH
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | RF_CH);
+    Read_Byte_MSB_First(1,read_reg_RF_CH); // read 1 bytes
+    CSN_On();
+    //RF_SETUP
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | RF_SETUP);
+    Read_Byte_MSB_First(1,read_reg_RF_SETUP); // read 1 bytes
+    CSN_On();
+    //read_reg_STATUS
+    //CSN_Off();   //can be fully commented out, it'll be read in each instruction writebyte
+    //Instruction_Byte_MSB_First(R_REGISTER | STATUS);
+    //Read_Byte_MSB_First(1,read_reg_STATUS); // read 1 bytes
+    //CSN_On();
+    //OBSERVE_TX
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | OBSERVE_TX);
+    Read_Byte_MSB_First(1,read_reg_OBSERVE_TX); // read 1 bytes
+    CSN_On();
+    //CD
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | CD);
+    Read_Byte_MSB_First(1,read_reg_CD); // read 1 bytes
+    CSN_On();
+    //RX_ADDR_P0
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | RX_ADDR_P0);
+    Read_Byte_MSB_First(5,read_reg_RX_ADDR_P0); // read 5 bytes
+    CSN_On();
+    //RX_ADDR_P1
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | RX_ADDR_P1);
+    Read_Byte_MSB_First(5,read_reg_RX_ADDR_P1); // read 5 bytes
+    CSN_On();
+    //RX_ADDR_P2
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | RX_ADDR_P2);
+    Read_Byte_MSB_First(1,read_reg_RX_ADDR_P2); // read 1 bytes
+    CSN_On();
+    //RX_ADDR_P3
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | RX_ADDR_P3);
+    Read_Byte_MSB_First(1,read_reg_RX_ADDR_P3); // read 1 bytes
+    CSN_On();
+    //RX_ADDR_P4
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | RX_ADDR_P4);
+    Read_Byte_MSB_First(1,read_reg_RX_ADDR_P4); // read 1 bytes
+    CSN_On();
+    //RX_ADDR_P5
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | RX_ADDR_P5);
+    Read_Byte_MSB_First(1,read_reg_RX_ADDR_P5); // read 1 bytes
+    CSN_On();
+    //TX_ADDR
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | TX_ADDR);
+    Read_Byte_MSB_First(5,read_reg_TX_ADDR); // read 5 bytes
+    CSN_On();
+    //RX_PW_P0
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | RX_PW_P0);
+    Read_Byte_MSB_First(1,read_reg_RX_PW_P0); // read 1 bytes
+    CSN_On();
+    //RX_PW_P1
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | RX_PW_P1);
+    Read_Byte_MSB_First(1,read_reg_RX_PW_P1); // read 1 bytes
+    CSN_On();
+    //RX_PW_P2
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | RX_PW_P2);
+    Read_Byte_MSB_First(1,read_reg_RX_PW_P2); // read 1 bytes
+    CSN_On();
+    //RX_PW_P3
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | RX_PW_P3);
+    Read_Byte_MSB_First(1,read_reg_RX_PW_P3); // read 1 bytes
+    CSN_On();
+    //RX_PW_P4
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | RX_PW_P4);
+    Read_Byte_MSB_First(1,read_reg_RX_PW_P4); // read 1 bytes
+    CSN_On();
+    //RX_PW_P5
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | RX_PW_P5);
+    Read_Byte_MSB_First(1,read_reg_RX_PW_P5); // read 1 bytes
+    CSN_On();
+    //FIFO_STATUS
+    CSN_Off();
+    Instruction_Byte_MSB_First(R_REGISTER | FIFO_STATUS);
+    Read_Byte_MSB_First(1,read_reg_FIFO_STATUS); // read 1 bytes
+    CSN_On();
+
+
+    while(1){
+
+    }
+}
+void SCLK_Pulse (void)
+{
+  P2OUT |= SCLK;//set high with OR 1
+  P2OUT ^= SCLK;//toggle with XOR 1
+}
+void Send_Bit (unsigned int value)
+{
+    if (value != 0){
+        P2OUT |= MOSI;}
+    else {
+        P2OUT &= ~MOSI;
+    }
+}
+void CE_On (void)
+{
+    P2OUT |= CE;
+}
+
+void CE_Off (void)
+{
+    P2OUT &= ~CE;
+}
+void CSN_On (void)
+{
+    P2OUT |= CSN;
+}
+void CSN_Off (void)
+{
+    P2OUT &= ~CSN;
+}
+void Write_Byte(int content)
+{
+
+    for (j=0;j<8;j++){
+             x = (content & (1 << j));  //Write to Address
+             Send_Bit(x);
+             SCLK_Pulse();
+        }
+}
+void Instruction_Byte_MSB_First(int content)
+{
+
+    for (k=7;k>=0;--k){
+             x = (content & (1 << k));  //Write to Address
+             status_reg <<= 1;
+             Send_Bit(x);
+
+             if ((P2IN & MISO) == 0x02){
+
+
+                                             status_reg |= 0b00000001;
+                                                }
+                                                else {
+
+
+                                             status_reg  &= 0b11111110;
+                                                }
+
+             SCLK_Pulse();
+
+                         }
+
+}
+void Read_Byte_MSB_First(int index, unsigned char regname[])
+{
+    for (i=0;i<=(index-1);i++){
+        for (k=0;k<8;k++){
+           regname[i] <<= 1;
+
+
+                     if ((P2IN & MISO) == 0x02){
+
+                                                 //read_reg |= 0b10000000;
+                                                   regname[i] |= 0b00000001;
+                                                    }
+                                                    else {
+
+                                                 //read_reg  &= 0b01111111;
+                                                   regname[i]  &= 0b11111110;
+                                                    }
+                     SCLK_Pulse();
+    }
+}
+}
+void Write_Byte_MSB_First(unsigned char content[], int index2)
+{
+    for (i=0;i<=(index2-1);i++){
+    for (k=7;k>=0;--k){
+
+             x = (content[i] & (1 << k));  //Write to Address
+             Send_Bit(x);
+             SCLK_Pulse();
+
+                         }
+
+}
+}
+void Write_Payload_MSB_First(int pyld[], int index3)
+{
+    for (i=0;i<=(index3-1);i++){
+        for (k=15;k>=0;--k){
+
+                     x = (pyld[i] & (1 << k));  //Write to Address
+                     Send_Bit(x);
+                     SCLK_Pulse();
+
+                                 }
+
+        }
+        }
+
