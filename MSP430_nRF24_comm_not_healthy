@@ -1,0 +1,265 @@
+#include <msp430.h> 
+#include "nrf24.h"
+
+//configure msp430 registers based on the retrieved registers
+//from arduino configured nrf24 (TX)
+
+#define MOSI BIT0 //   P2.0
+#define MISO BIT1 //   P2.1
+#define SCLK BIT4  //   P2.4
+#define CE BIT5    // P2.5
+#define CSN BIT3   //P2.3
+int i;
+int j;
+int k;
+int x;
+
+
+//problematic code, however I managed to send data to arduino+nrf receiver
+
+int payload[8] = {100,200,300,400,500,600,700,888};
+unsigned char txt[6]="selim";
+unsigned char status_reg;
+unsigned char read_reg[5];
+
+unsigned char read_reg_CONFIG[1];
+unsigned char read_reg_EN_AA[1];
+unsigned char read_reg_EN_RXADDR[1];
+unsigned char read_reg_SETUP_AW[1];
+unsigned char read_reg_SETUP_RETR[1];
+unsigned char read_reg_RF_CH[1];
+unsigned char read_reg_RF_SETUP[1];
+unsigned char read_reg_STATUS[1];
+unsigned char read_reg_OBSERVE_TX[1];
+unsigned char read_reg_CD[1];
+unsigned char read_reg_RX_ADDR_P0[5];  //5 BYTES
+unsigned char read_reg_RX_ADDR_P1[5];  //5 BYTES
+unsigned char read_reg_RX_ADDR_P2[1];
+unsigned char read_reg_RX_ADDR_P3[1];
+unsigned char read_reg_RX_ADDR_P4[1];
+unsigned char read_reg_RX_ADDR_P5[1];
+unsigned char read_reg_TX_ADDR[5];  //5 BYTES
+unsigned char read_reg_RX_PW_P0[1];
+unsigned char read_reg_RX_PW_P1[1];
+unsigned char read_reg_RX_PW_P2[1];
+unsigned char read_reg_RX_PW_P3[1];
+unsigned char read_reg_RX_PW_P4[1];
+unsigned char read_reg_RX_PW_P5[1];
+unsigned char read_reg_FIFO_STATUS[1];
+
+unsigned char clr_status[1]={0b11111111};  //clr status reg
+
+unsigned char rf_setupregister[1]={0b00000001};  //Data Rate -> '0' (1 Mbps) & PA_MIN
+unsigned char configregister[1]={0b00001110};  //CRC '1'-> (2 bytes)  & Power ON & Enable CRC
+unsigned char rf_chanregister[1]={0b01001100};  //Channel '1001100'
+unsigned char address[6]="00001";  //write to RX_ADDR_P0 and TX_ADDR
+unsigned char setup_retr_register[1]={0b01011111};  //retry values
+
+void SCLK_Pulse (void);  //To create a clock pulse high low
+void Send_Bit (unsigned int value);     //For sending 1 or zero
+void CE_On (void);  //Chip enable
+void CE_Off (void);  //Chip disable
+void CSN_On (void);     //CSN On
+void CSN_Off (void);    //CSN Off
+void Write_Byte (int content);
+void Instruction_Byte_MSB_First (int content);
+void Read_Byte_MSB_First(int index, unsigned char regname[]);
+void Write_Byte_MSB_First(unsigned char content[], int index2);
+void Write_Payload_MSB_First(int pyld[], int index3);
+void main(void)
+{
+    __delay_cycles(1500); //delay for settling
+    WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
+    //P2DIR &= 0x00 ;
+    P2OUT &= 0x00;
+    P2DIR |= MOSI + SCLK + CE + CSN ;  //Output Pins
+    P2DIR &= ~MISO;
+
+    CE_Off();
+    CSN_On();
+    // Writing the config retrieved from arduino controlled nrf
+
+    //RF_SETUP
+    CSN_Off();
+    Instruction_Byte_MSB_First(W_REGISTER | RF_SETUP);
+    Write_Byte_MSB_First(rf_setupregister,1);
+    CSN_On();
+    //RX_ADDR_P0
+    CSN_Off();
+    Instruction_Byte_MSB_First(W_REGISTER | RX_ADDR_P0);
+    Write_Byte_MSB_First(address,5); // write 5 bytes address
+    CSN_On();
+    //TX_ADDR
+    CSN_Off();
+    Instruction_Byte_MSB_First(W_REGISTER | TX_ADDR);
+    Write_Byte_MSB_First(address,5); // write 5 bytes address
+    CSN_On();
+    //RF_CH
+    CSN_Off();
+    Instruction_Byte_MSB_First(W_REGISTER | RF_CH);
+    Write_Byte_MSB_First(rf_chanregister,1);
+    CSN_On();
+    //SETUP_RETR
+    CSN_Off();
+    Instruction_Byte_MSB_First(W_REGISTER | SETUP_RETR);
+    Write_Byte_MSB_First(setup_retr_register,1);
+    CSN_On();
+    //CONFIG
+    CSN_Off();
+    Instruction_Byte_MSB_First(W_REGISTER | CONFIG);
+    Write_Byte_MSB_First(configregister,1);
+    CSN_On();
+
+
+    while(1){
+        //CE_Off();
+if ((status_reg & BIT4) == 0x10){
+        CSN_Off();
+        Instruction_Byte_MSB_First(W_REGISTER | STATUS);
+        Write_Byte_MSB_First(clr_status,1);
+        CSN_On();
+        CSN_Off();
+        Instruction_Byte_MSB_First(FLUSH_TX);
+        CSN_On();
+}
+        CSN_Off();
+        Instruction_Byte_MSB_First(W_TX_PAYLOAD);
+        //Write_Byte_MSB_First(payload,8);
+        Write_Payload_MSB_First(payload,8);
+        CSN_On();
+        CE_On();
+        //__delay_cycles(11);
+
+        __delay_cycles(1000);
+    }
+}
+void SCLK_Pulse (void)
+{
+  P2OUT |= SCLK;//set high with OR 1
+  P2OUT ^= SCLK;//toggle with XOR 1
+}
+void Send_Bit (unsigned int value)
+{
+    if (value != 0){
+        P2OUT |= MOSI;}
+    else {
+        P2OUT &= ~MOSI;
+    }
+}
+void CE_On (void)
+{
+    P2OUT |= CE;
+}
+
+void CE_Off (void)
+{
+    P2OUT &= ~CE;
+}
+void CSN_On (void)
+{
+    P2OUT |= CSN;
+}
+void CSN_Off (void)
+{
+    P2OUT &= ~CSN;
+}
+void Write_Byte(int content)
+{
+
+    for (j=0;j<8;j++){
+             x = (content & (1 << j));  //Write to Address
+             Send_Bit(x);
+             SCLK_Pulse();
+        }
+}
+void Instruction_Byte_MSB_First(int content)
+{
+
+    for (k=7;k>=0;--k){
+             x = (content & (1 << k));  //Write to Address
+             status_reg <<= 1;
+             Send_Bit(x);
+
+             if ((P2IN & MISO) == 0x02){
+
+
+                                             status_reg |= 0b00000001;
+                                                }
+                                                else {
+
+
+                                             status_reg  &= 0b11111110;
+                                                }
+
+             SCLK_Pulse();
+
+                         }
+
+}
+void Read_Byte_MSB_First(int index, unsigned char regname[])
+{
+    for (i=0;i<=(index-1);i++){
+        for (k=0;k<8;k++){
+           regname[i] <<= 1;
+
+
+                     if ((P2IN & MISO) == 0x02){
+
+                                                 //read_reg |= 0b10000000;
+                                                   regname[i] |= 0b00000001;
+                                                    }
+                                                    else {
+
+                                                 //read_reg  &= 0b01111111;
+                                                   regname[i]  &= 0b11111110;
+                                                    }
+                     SCLK_Pulse();
+    }
+}
+}
+void Write_Byte_MSB_First(unsigned char content[], int index2)
+{
+    for (i=0;i<=(index2-1);i++){
+    for (k=7;k>=0;--k){
+
+             x = (content[i] & (1 << k));  //Write to Address
+             Send_Bit(x);
+             SCLK_Pulse();
+
+                         }
+
+}
+}
+/*void Write_Payload_MSB_First(int pyld[], int index3)
+{
+    for (i=0;i<=(index3-1);i++){
+        for (k=15;k>=0;--k){
+
+                     x = (pyld[i] & (1 << k));  //Write to Address
+                     Send_Bit(x);
+                     SCLK_Pulse();
+
+                                 }
+
+        }
+        }*/
+void Write_Payload_MSB_First(int pyld[], int index3)
+{
+    for (i=0;i<=(index3-1);i++){
+        for (k=7;k>=0;--k){
+
+                     x = (pyld[i] & (1 << k));  //Write to Address
+                     Send_Bit(x);
+                     SCLK_Pulse();
+
+                                 }
+        for (k=15;k>=8;--k){
+
+                             x = (pyld[i] & (1 << k));  //Write to Address
+                             Send_Bit(x);
+                             SCLK_Pulse();
+
+                                         }
+
+        }
+        }
